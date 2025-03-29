@@ -1,0 +1,8 @@
+kafka-python
+pymongo
+requests
+duckdb
+tabulate
+numpy
+boto3
+python-dotenv
