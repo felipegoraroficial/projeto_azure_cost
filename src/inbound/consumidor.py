@@ -7,7 +7,9 @@ from datetime import datetime
 consumer = KafkaConsumer(
     'api-topic',
     bootstrap_servers=['localhost:9091'],
-    value_deserializer=lambda v: json.loads(v.decode('utf-8'))
+    value_deserializer=lambda v: json.loads(v.decode('utf-8')),
+    auto_offset_reset='latest',  # Configura para consumir apenas novas mensagens
+    enable_auto_commit=True
 )
 
 # Configuração do MongoDB
@@ -18,14 +20,14 @@ db = client["azurecost"]
 data_atual = datetime.now()
 data_formatada = data_atual.strftime('%Y-%m-%d')
 
-# Consumindo dados do Kafka e salvando no MongoDB
-collection = db[data_formatada]  # Nome da coleção com base na data
-print("Iniciando consumo de mensagens do Kafka...")
+# Definindo a coleção no MongoDB
+collection = db[data_formatada]  # Nome da coleção baseado na data
+
+print("Aguardando a última mensagem do Kafka...")
 for message in consumer:
+    # Obtém apenas a mensagem mais recente que chega
     data = message.value
-    if "mensagem" in data and data["mensagem"] == "Dado periódico do produtor":
-        print("Mensagem genérica ignorada.")
-        continue
+    print("Última mensagem recebida:", data)
 
     try:
         if isinstance(data, list):  # Se o JSON for uma lista de objetos
