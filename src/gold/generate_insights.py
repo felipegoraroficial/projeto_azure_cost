@@ -3,7 +3,8 @@ import duckdb
 import os
 from dotenv import load_dotenv
 from io import BytesIO
-from tabulate import tabulate 
+from tabulate import tabulate
+from datetime import datetime
 
 # Caminho relativo
 env_path = os.path.join(os.getcwd(), '.env')
@@ -36,6 +37,26 @@ con = duckdb.connect()
 # Criar uma tabela temporária a partir do arquivo Parquet
 con.execute(f"CREATE TEMP TABLE temp_table AS SELECT * FROM parquet_scan('{temp_file_path}')")
 
+# Obter a data atual em formato "YYYY-MM-DD"
+current_date = datetime.now().strftime('%Y-%m-%d')
+
+# Verificar se existe `UsageDate` igual à data atual
+missing_date_groups = con.execute(f"""
+SELECT DISTINCT ResourceGroup, recurso
+FROM temp_table
+EXCEPT
+SELECT ResourceGroup, recurso
+FROM temp_table
+WHERE UsageDate = '{current_date}';
+""").fetchall()
+
+# Inserir uma nova linha para cada grupo que está faltando a data atual
+for resource_group, resource in missing_date_groups:
+    con.execute(f"""
+    INSERT INTO temp_table (ResourceGroup, recurso, UsageDate, PreTaxCost)
+    VALUES ('{resource_group}', '{resource}', '{current_date}', 0);
+    """)
+
 # Calcular aumento ou diminuição por recurso e grupo de recursos
 con.execute("""
 CREATE TABLE insights_table AS
@@ -49,7 +70,8 @@ FROM temp_table
 ORDER BY ResourceGroup, recurso, UsageDate;
 """)
 
-query = "SELECT * FROM insights_table LIMIT 10"  # Limitar a 10 registros para exibição
+# Consultar e exibir os resultados
+query = "SELECT * FROM insights_table"  # Limitar a 10 registros para exibição
 result = con.execute(query).fetchall()
 columns = [desc[0] for desc in con.execute("DESCRIBE insights_table").fetchall()]
 
@@ -57,7 +79,7 @@ columns = [desc[0] for desc in con.execute("DESCRIBE insights_table").fetchall()
 print("Aumento/Diminuição de PreTaxCost por ResourceGroup e Recurso:")
 print(tabulate(result, headers=columns, tablefmt="grid"))
 
-# **Salvar os dados transformados em Parquet**
+# Salvar os dados transformados em Parquet
 insights_query = """
 SELECT
     CAST(ResourceGroup AS VARCHAR) AS ResourceGroup,
@@ -84,4 +106,3 @@ print(f"\nArquivo salvo com sucesso no MinIO: gold/insights_dados.parquet")
 # Remover arquivos temporários locais
 os.remove(temp_file_path)
 os.remove(insights_data_path)
-
