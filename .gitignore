@@ -1,1 +1,7 @@
 .env
+venv
+kafka_data
+logs
+minio_data
+plugins
+postgres-db-volume

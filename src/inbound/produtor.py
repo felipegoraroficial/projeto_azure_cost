@@ -75,4 +75,4 @@ while True:
     except Exception as e:
         print("Erro ao consultar a API ou enviar os dados:", e)
 
-    time.sleep(43200)  # Envia a cada 12 horas
+    time.sleep(60)  # Envia a cada 60 segundos
