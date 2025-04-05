@@ -45,11 +45,11 @@ query = "SELECT * FROM temp_table"  # Limitar a 10 registros para exibição
 table = con.execute(query).fetchdf()
 
 # Criar um agente LangChain para interagir com o DataFrame
-llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", openai_api_key=ai_key)
+llm = ChatOpenAI(temperature=0.7, model="gpt-4o-mini", openai_api_key=ai_key)
 agent = create_pandas_dataframe_agent(llm, table, verbose=True, allow_dangerous_code=True)
 
 # Fazer perguntas ao agente LangChain sobre os dados
-question = "Quais são os principais insights que você pode obter desta tabela?"
+question = "Você pode me ajudar a identificar quais são os recursos que tiveram mais custo com a data mais recente que não seja igual a zero?"
 try:
     answer = agent.invoke(question) # alterado agent.run para agent.invoke
     print("Insights de IA:")
