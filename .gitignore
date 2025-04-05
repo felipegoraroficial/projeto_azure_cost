@@ -1,8 +1,8 @@
 .env
-venv
-kafka_data
+venv/
+kafka_data/
 logs
-minio_data
+minio_data/.minio.sys/
 plugins
 config
 postgres-db-volume
