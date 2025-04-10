@@ -8,13 +8,18 @@ consumer = KafkaConsumer(
     'api-topic',
     bootstrap_servers=['localhost:9091'],
     value_deserializer=lambda v: json.loads(v.decode('utf-8')),
-    auto_offset_reset='latest',  # Configura para consumir apenas novas mensagens
+    auto_offset_reset='latest', 
     enable_auto_commit=True
 )
 
 # Configuração do MongoDB
 client = MongoClient("mongodb://fececa:fececa13@localhost:27017/")
-db = client["azurecost"]
+
+# Garante que o database azurecost será criado se não existir
+db_name = "azurecost"
+if db_name not in client.list_database_names():
+    print(f"Database {db_name} não encontrado. Será criado automaticamente ao inserir dados.")
+db = client[db_name]
 
 # Obtém a data atual
 data_atual = datetime.now()
