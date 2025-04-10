@@ -5,7 +5,7 @@
 O objetivo deste projeto é extrair dados do MS Graph onde podemos coletar informações de uma subscription especiifca referente a custo cloud da Azure. Após a captura, os dados serão tratrados utilizando ferramenta de alta performace para bigdata e carregados em um banco de dados para armazenamento da informação e então, será gerado insgts para redução ou apontamento prévio referente aos custos em recursos que sejam relevante ao budget da conta em questão.
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/d4778122-4957-4e29-abd6-879383670dd6" alt="Desenho Funcional">
+  <img src="https://github.com/user-attachments/assets/0d005317-c273-465b-8b84-ade1a2e8426d" alt="Desenho Funcional">
   <p><b>Desenho Funcional</b></p>
 </div>
 
@@ -28,7 +28,7 @@ Foi criado variáveis de ambientes para armazemento de Keys e Senhas aos recurso
 O projeto está versionado em duas branches no GitHub, sendo elas: Dev e Prd
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/4062eb64-52f9-48c7-9104-9de5940c619a" alt="Desenho Técnico">
+  <img src="https://github.com/user-attachments/assets/126c4479-ac6a-4fa5-abbc-a100dfabf92e" alt="Desenho Técnico">
   <p><b>Desenho Técnico</b></p>
 </div>
 
