@@ -2,7 +2,9 @@
 venv/
 kafka_data/
 logs
-minio_data/.minio.sys/
+minio_data/
+minio_data/.minio.sys
 plugins
 config
 postgres-db-volume
+**/__pycache__
