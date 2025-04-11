@@ -1,10 +1,8 @@
-import boto3
 import duckdb
+from datetime import datetime
 import os
 from dotenv import load_dotenv
-from io import BytesIO
 from tabulate import tabulate
-from datetime import datetime
 
 
 def transformar_dados():
@@ -13,99 +11,86 @@ def transformar_dados():
     env_path = os.path.join(os.getcwd(), '.env')
     load_dotenv(dotenv_path=env_path)
 
-    # Configuração do cliente S3 (MinIO)
-    s3_client = boto3.client(
-        's3',
-        endpoint_url='http://minio:9000',
-        aws_access_key_id=os.getenv('KEY_ACCESS'),
-        aws_secret_access_key=os.getenv('KEY_SECRETS')
-    )
+    # Nome da tabela processada ao extrair dados do MongoDB
+    nome_tabela = "gold_data"
 
-    # Nome do bucket e arquivo Parquet
+    #  Configurações do Minio
+    minio_endpoint = 'minio:9000'
+    minio_access_key = os.getenv('MINIO_ROOT_USER')
+    minio_secret_key = os.getenv('MINIO_ROOT_PASSWORD')
     bucket_name = 'azurecost'
-    file_name = 'silver/processed_dados.parquet'
+    silver_file = 'silver/dados.parquet'
+    silver_file_path = f"s3://{bucket_name}/{silver_file}"
+    gold_file = 'gold/dados.parquet'
+    gold_file_path = f"s3://{bucket_name}/{gold_file}"
 
-    # Fazendo o download do arquivo Parquet
-    response = s3_client.get_object(Bucket=bucket_name, Key=file_name)
-    parquet_data = BytesIO(response['Body'].read())  # Carrega os dados como um buffer em memória
+    # Conectar ao DuckDB diretamente a memoria RAM
+    con = duckdb.connect(database=':memory:')
 
-    # Salvar o buffer em um arquivo temporário
-    temp_file_path = "temp_dados.parquet"
-    with open(temp_file_path, "wb") as temp_file:
-        temp_file.write(parquet_data.getvalue())
+    #  Instalar e carregar a extensão httpfs para acessar serviços HTTP(S) como S3
+    con.execute("INSTALL httpfs;")
+    con.execute("LOAD httpfs;")
+    print("Extensão httpfs instalada e carregada.")
 
-    # Usar DuckDB para processar o arquivo Parquet diretamente
-    con = duckdb.connect("azurecost.db")
-
-    # Criar uma tabela temporária a partir do arquivo Parquet
-    con.execute(f"CREATE TEMP TABLE IF NOT EXISTS temp_table AS SELECT * FROM parquet_scan('{temp_file_path}')")
+    #  Configurar as credenciais do Minio
+    con.execute(f"""
+        SET s3_endpoint='{minio_endpoint}';
+        SET s3_access_key_id='{minio_access_key}';
+        SET s3_secret_access_key='{minio_secret_key}';
+        SET s3_use_ssl=False;
+        SET s3_url_style='path';
+    """)
+    print("Credenciais do Minio configuradas.")
 
     # Obter a data atual em formato "YYYY-MM-DD"
     current_date = datetime.now().strftime('%Y-%m-%d')
 
+    # Criar uma tabela temporária a partir do arquivo Parquet
+    con.execute(f"CREATE TEMP TABLE IF NOT EXISTS gold_temp_table AS SELECT * FROM read_parquet('{silver_file_path}')")
+
     # Verificar se existe `UsageDate` igual à data atual
     missing_date_groups = con.execute(f"""
     SELECT DISTINCT ResourceGroup, recurso
-    FROM temp_table
+    FROM read_parquet('{silver_file_path}')
     EXCEPT
     SELECT ResourceGroup, recurso
-    FROM temp_table
+    FROM read_parquet('{silver_file_path}')
     WHERE UsageDate = '{current_date}';
     """).fetchall()
 
     # Inserir uma nova linha para cada grupo que está faltando a data atual
     for resource_group, resource in missing_date_groups:
         con.execute(f"""
-        INSERT INTO temp_table (ResourceGroup, recurso, UsageDate, PreTaxCost)
-        VALUES ('{resource_group}', '{resource}', '{current_date}', 0);
+        INSERT INTO gold_temp_table (ResourceGroup, recurso, UsageDate, PreTaxCost, Currency)
+        VALUES ('{resource_group}', '{resource}', '{current_date}', 0, '-');
         """)
 
     # Calcular aumento ou diminuição por recurso e grupo de recursos
-    con.execute("""
-    CREATE TABLE IF NOT EXISTS insights_table AS
+    con.execute(f"""
+    CREATE TABLE IF NOT EXISTS {nome_tabela} AS
     SELECT
         ResourceGroup,
         recurso,
         UsageDate,
         PreTaxCost,
         PreTaxCost - LAG(PreTaxCost) OVER (PARTITION BY ResourceGroup, recurso ORDER BY UsageDate) AS change
-    FROM temp_table
+    FROM gold_temp_table
     ORDER BY ResourceGroup, recurso, UsageDate;
     """)
 
-    # Consultar e exibir os resultados
-    query = "SELECT * FROM insights_table"  # Limitar a 10 registros para exibição
+    # **Exibir os dados transformados em formato tabular**
+    print("Dados transformados:")
+    query = f"SELECT * FROM {nome_tabela} ORDER BY UsageDate DESC LIMIT 10"
     result = con.execute(query).fetchall()
-    columns = [desc[0] for desc in con.execute("DESCRIBE insights_table").fetchall()]
-
-    # Exibir os resultados no formato tabular
-    print("Aumento/Diminuição de PreTaxCost por ResourceGroup e Recurso:")
+    columns = [desc[0] for desc in con.execute(f"DESCRIBE {nome_tabela}").fetchall()]
     print(tabulate(result, headers=columns, tablefmt="grid"))
 
-    # Salvar os dados transformados em Parquet
-    insights_query = """
-    SELECT
-        CAST(ResourceGroup AS VARCHAR) AS ResourceGroup,
-        CAST(recurso AS VARCHAR) AS recurso,
-        UsageDate,
-        PreTaxCost,
-        change
-    FROM insights_table
-    """
-    insights_data_path = "insights_data.parquet"
-    con.execute(f"COPY ({insights_query}) TO '{insights_data_path}' (FORMAT 'parquet')")
+    # **Exibir o DESCRIBE da tabela**
+    print("\nEstrutura da tabela (DESCRIBE):")
+    describe_query = f"DESCRIBE {nome_tabela}"
+    describe_result = con.execute(describe_query).fetchall()
+    print(tabulate(describe_result, headers=["Column Name", "Data Type", "Nullable"], tablefmt="grid"))
 
-    # Fazer o upload do arquivo Parquet para o MinIO
-    with open(insights_data_path, "rb") as output_file:
-        s3_client.put_object(
-            Bucket=bucket_name,
-            Key='gold/insights_dados.parquet',  # Caminho no MinIO
-            Body=output_file,
-            ContentType='application/octet-stream'
-        )
-
-    print(f"\nArquivo salvo com sucesso no MinIO: gold/insights_dados.parquet")
-
-    # Remover arquivos temporários locais
-    os.remove(temp_file_path)
-    os.remove(insights_data_path)
+    # Salvar a tabela do DuckDB para o bucket do Minio em formato Parquet
+    con.execute(f"COPY {nome_tabela} TO '{gold_file_path}' (FORMAT PARQUET);")
+    print(f"Tabela '{nome_tabela}' salva com sucesso em '{gold_file_path}' no bucket '{bucket_name}'.")

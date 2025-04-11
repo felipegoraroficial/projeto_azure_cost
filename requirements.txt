@@ -5,6 +5,7 @@ duckdb
 tabulate
 numpy
 boto3
+minio
 python-dotenv
 openai
 langchain
