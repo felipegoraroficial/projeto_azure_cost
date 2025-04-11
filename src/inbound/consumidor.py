@@ -26,7 +26,7 @@ data_atual = datetime.now()
 data_formatada = data_atual.strftime('%Y-%m-%d')
 
 # Definindo a coleção no MongoDB
-collection = db[data_formatada]  # Nome da coleção baseado na data
+collection = db[data_formatada]
 
 print("Aguardando a última mensagem do Kafka...")
 for message in consumer:

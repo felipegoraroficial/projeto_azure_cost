@@ -100,6 +100,8 @@ services:
       retries: 5
       start_period: 5s
     restart: always
+    ports:
+      - "5432:5432"
 
   redis:
     # Redis is limited to 7.2-bookworm due to licencing change
@@ -296,6 +298,9 @@ services:
     command: server /data --console-address ":9001"
     volumes:
       - ./minio_data:/data
+    env_file:
+      - .env
+    restart: always
 
   mongo:
     build:

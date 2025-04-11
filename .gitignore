@@ -1,10 +1,11 @@
 .env
 venv/
-kafka_data/
-logs
+kafka_data
+logs/**
+mongo_data
 minio_data/
 minio_data/.minio.sys
-plugins
+plugins/**
 config
 postgres-db-volume
 **/__pycache__

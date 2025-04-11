@@ -14,7 +14,7 @@ def processar_dados():
     db = client["azurecost"]
 
     # Variável para armazenar todas as linhas
-    todas_as_linhas = []
+    dados_mongo = []
 
     # Listando todas as coleções no banco de dados
     colecoes = db.list_collection_names()
@@ -24,19 +24,22 @@ def processar_dados():
         colecao = db[colecao_nome]
         documentos = colecao.find()
         for documento in documentos:
-            # Extrair colunas e linhas da propriedade 'properties'
-            colunas = [col["name"] for col in documento.get("properties", {}).get("columns", [])]
-            linhas = documento.get("properties", {}).get("rows", [])
-            for linha in linhas:
-                # Criar um dicionário para cada linha com base nas colunas
-                todas_as_linhas.append(dict(zip(colunas, linha)))
+            linha = {
+                "_id": documento.get("_id"),
+                "PreTaxCost": documento.get("PreTaxCost"),
+                "UsageDate": documento.get("UsageDate"),
+                "ResourceGroup": documento.get("ResourceGroup"),
+                "ResourceId": documento.get("ResourceId"),
+                "Currency": documento.get("Currency")
+            }
+            dados_mongo.append(linha)
 
-    # Conectar ao DuckDB
-    con = duckdb.connect("azurecost.db")
+    # Conectar ao DuckDB diretamente a memoria RAM
+    con = duckdb.connect(database=':memory:')
 
     # Criar uma tabela temporária e inserir os dados manualmente
     con.execute("""
-    CREATE TABLE IF NOT EXISTS todas_as_linhas (
+    CREATE TABLE IF NOT EXISTS dados_mongo (
         PreTaxCost DOUBLE,
         UsageDate INT,
         ResourceGroup VARCHAR,
@@ -45,18 +48,18 @@ def processar_dados():
     )
     """)
 
-    # Inserir os dados da lista todas_as_linhas na tabela
-    for linha in todas_as_linhas:
+    # Inserir os dados da lista dados_mongo na tabela
+    for linha in dados_mongo:
         con.execute(
-            "INSERT INTO todas_as_linhas VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO dados_mongo VALUES (?, ?, ?, ?, ?)",
             (linha["PreTaxCost"], linha["UsageDate"], linha["ResourceGroup"], linha["ResourceId"], linha["Currency"])
         )
 
     # Executar consultas diretamente na tabela
-    result = con.execute("SELECT * FROM todas_as_linhas LIMIT 10").fetchall()
+    result = con.execute("SELECT * FROM dados_mongo LIMIT 10").fetchall()
 
     # Obter os nomes das colunas
-    columns = [desc[0] for desc in con.execute("DESCRIBE todas_as_linhas").fetchall()]
+    columns = [desc[0] for desc in con.execute("DESCRIBE dados_mongo").fetchall()]
 
     # Exibir os resultados em formato tabular usando tabulate
     print(tabulate(result, headers=columns, tablefmt="psql"))

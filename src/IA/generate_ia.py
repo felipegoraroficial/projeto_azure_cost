@@ -1,8 +1,6 @@
-import boto3
 import duckdb
 import os
 from dotenv import load_dotenv
-from io import BytesIO
 from langchain_experimental.agents import create_pandas_dataframe_agent
 from langchain_openai import ChatOpenAI
 import pandas as pd
@@ -15,50 +13,48 @@ def gerar_insights():
 
     ai_key = os.getenv('OPENAI_API_KEY')
 
-    # Configuração do cliente S3 (MinIO)
-    s3_client = boto3.client(
-        's3',
-        endpoint_url='http://minio:9000',
-        aws_access_key_id=os.getenv('KEY_ACCESS'),
-        aws_secret_access_key=os.getenv('KEY_SECRETS')
-    )
-
-    # Nome do bucket e arquivo Parquet
+    #  Configurações do Minio
+    minio_endpoint = 'minio:9000'
+    minio_access_key = os.getenv('MINIO_ROOT_USER')
+    minio_secret_key = os.getenv('MINIO_ROOT_PASSWORD')
     bucket_name = 'azurecost'
-    file_name = 'gold/insights_dados.parquet'
+    gold_file = 'gold/dados.parquet'
+    gold_file_path = f"s3://{bucket_name}/{gold_file}"
 
-    # Fazendo o download do arquivo Parquet
-    response = s3_client.get_object(Bucket=bucket_name, Key=file_name)
-    parquet_data = BytesIO(response['Body'].read())  # Carrega os dados como um buffer em memória
+    # Conectar ao DuckDB diretamente a memoria RAM
+    con = duckdb.connect(database=':memory:')
 
-    # Salvar o buffer em um arquivo temporário
-    temp_file_path = "temp_dados.parquet"
-    with open(temp_file_path, "wb") as temp_file:
-        temp_file.write(parquet_data.getvalue())
+    #  Instalar e carregar a extensão httpfs para acessar serviços HTTP(S) como S3
+    con.execute("INSTALL httpfs;")
+    con.execute("LOAD httpfs;")
+    print("Extensão httpfs instalada e carregada.")
 
-    # Usar DuckDB para processar o arquivo Parquet diretamente
-    con = duckdb.connect("azurecost.db")
-
-    # Criar uma tabela temporária a partir do arquivo Parquet
-    con.execute(f"CREATE TEMP TABLE IF NOT EXISTS temp_table AS SELECT * FROM parquet_scan('{temp_file_path}')")
+    #  Configurar as credenciais do Minio
+    con.execute(f"""
+        SET s3_endpoint='{minio_endpoint}';
+        SET s3_access_key_id='{minio_access_key}';
+        SET s3_secret_access_key='{minio_secret_key}';
+        SET s3_use_ssl=False;
+        SET s3_url_style='path';
+    """)
+    print("Credenciais do Minio configuradas.")
 
     # Consultar e exibir os resultados
-    query = "SELECT * FROM temp_table" 
-    table = con.execute(query).fetchdf()
+    query = f"SELECT * FROM read_parquet('{gold_file_path}');"
+    df = con.execute(query).fetchdf()
 
-    # Verifique se a tabela contém mais de 0 linhas
-    if len(table) > 0:
-    
+    if len(df) > 0:
+
         print("A tabela tem dados! Continuando o fluxo...")
 
         # Criar um agente LangChain para interagir com o DataFrame
         llm = ChatOpenAI(temperature=0.7, model="gpt-4o-mini", openai_api_key=ai_key)
-        agent = create_pandas_dataframe_agent(llm, table, verbose=True, allow_dangerous_code=True)
+        agent = create_pandas_dataframe_agent(llm, df, verbose=True, allow_dangerous_code=True)
 
         # Fazer perguntas ao agente LangChain sobre os dados
-        question = "Você pode me ajudar a identificar quais são os recursos que tiveram mais custo com a data mais recente que não seja igual a zero?"
+        question = "Me informe dicas de como economizar com custos clouds referente aos dados do dataframe"
         try:
-            answer = agent.invoke(question) # alterado agent.run para agent.invoke
+            answer = agent.invoke(question)
             print("Insights de IA:")
             print(answer)
         except Exception as e:
@@ -68,7 +64,4 @@ def gerar_insights():
                 print(f"An error occurred: {e}")
 
     else:
-        print("Sem dados para gerar insights")          
-
-    # Remover arquivos temporários locais
-    os.remove(temp_file_path)
+        print("Sem dados para gerar insights") 
