@@ -12,7 +12,7 @@ def carregar_dados():
     load_dotenv(dotenv_path=env_path)
 
     # Conectar ao DuckDB diretamente a memoria RAM
-    con = duckdb.connect(database=':memory:')
+    con = duckdb.connect('azurecost.db')
 
     # Nome da tabela processada ao extrair dados do MongoDB
     nome_tabela = "dados_mongo"
@@ -65,8 +65,8 @@ def carregar_dados():
 
     #  Configurações do Minio 
     minio_endpoint = 'minio:9000'
-    minio_access_key = os.getenv('MINIO_ROOT_USER')
-    minio_secret_key = os.getenv('MINIO_ROOT_PASSWORD')
+    minio_access_key = os.getenv('KEY_ACCESS')
+    minio_secret_key = os.getenv('KEY_SECRETS')
     output_file_path = f"s3://{bucket_name}/{file_name}" # Caminho para salvar no Minio
 
     #  Instalar e carregar a extensão httpfs para acessar serviços HTTP(S) como S3 

@@ -35,7 +35,7 @@ def processar_dados():
             dados_mongo.append(linha)
 
     # Conectar ao DuckDB diretamente a memoria RAM
-    con = duckdb.connect(database=':memory:')
+    con = duckdb.connect('azurecost.db')
 
     # Criar uma tabela temporária e inserir os dados manualmente
     con.execute("""

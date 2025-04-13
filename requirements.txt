@@ -13,3 +13,5 @@ langchain-community
 langchain_experimental
 langchain_openai
 pandas
+apache-airflow-providers-celery
+redis
