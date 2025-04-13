@@ -25,7 +25,7 @@ def normalizar_dados():
     silver_file_path = f"s3://{bucket_name}/{silver_file}"
 
     # Conectar ao DuckDB diretamente a memoria RAM
-    con = duckdb.connect(database=':memory:')
+    con = duckdb.connect('azurecost.db')
 
     #  Instalar e carregar a extensão httpfs para acessar serviços HTTP(S) como S3
     con.execute("INSTALL httpfs;")
