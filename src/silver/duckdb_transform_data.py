@@ -16,8 +16,8 @@ def normalizar_dados():
 
     #  Configurações do Minio
     minio_endpoint = 'minio:9000'
-    minio_access_key = os.getenv('MINIO_ROOT_USER')
-    minio_secret_key = os.getenv('MINIO_ROOT_PASSWORD')
+    minio_access_key = os.getenv('KEY_ACCESS')
+    minio_secret_key = os.getenv('KEY_SECRETS')
     bucket_name = 'azurecost'
     bronze_file = 'bronze/dados.parquet'
     bronze_file_path = f"s3://{bucket_name}/{bronze_file}"
