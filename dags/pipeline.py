@@ -6,6 +6,8 @@ from src.bronze.carregar_dados_minio import carregar_dados
 from src.silver.duckdb_transform_data import normalizar_dados
 from src.gold.generate_insights import transformar_dados
 from src.IA.generate_ia import gerar_insights
+from src.database.create_table import criando_database_e_tabela
+from src.database.load_data_on_table import carregando_dados_na_tabela
 
 
 
@@ -17,7 +19,8 @@ default_args = {
 dag = DAG(
     'azure-cost-pipeline',
     default_args=default_args,
-    schedule_interval='@hourly',
+    schedule_interval='0 */4 * * *',
+    catchup=False,
 )
 
 # Define uma função Python para o primeiro passo
@@ -39,6 +42,14 @@ def executar_transformar_dados():
 # Define uma função Python para o quarto passo
 def executar_gerar_dados_IA():
     gerar_insights()
+
+# Define uma função Python para o quinto passo
+def criando_tabelas():
+    criando_database_e_tabela()
+
+# Define uma função Python para o quinto passo
+def carregando_tabelas():
+    carregando_dados_na_tabela()
 
 # Task para processar dados do MongoDB
 task1 = PythonOperator(
@@ -75,5 +86,19 @@ task5 = PythonOperator(
     dag=dag,
 )
 
+# Task para criar database e tabelas no postgres
+task6 = PythonOperator(
+    task_id='criando_tabela_postgres',
+    python_callable=criando_database_e_tabela,
+    dag=dag,
+)
+
+# Task para carregar dados na tabela do postgres
+task7 = PythonOperator(
+    task_id='carregando_tabela_postgres',
+    python_callable=carregando_dados_na_tabela,
+    dag=dag,
+)
+
 # Define a dependência entre as tasks
-task1 >> task2 >> task3 >> task4 >> task5
+task1 >> task2 >> task3 >> task4 >> [task5, task6] >> task7

@@ -22,11 +22,10 @@ if db_name not in client.list_database_names():
 db = client[db_name]
 
 # Obtém a data atual
-data_atual = datetime.now()
-data_formatada = data_atual.strftime('%Y-%m-%d')
+data_atual = datetime.now().strftime('%Y-%m-%d')
 
 # Definindo a coleção no MongoDB
-collection = db[data_formatada]
+collection = db[data_atual]
 
 print("Aguardando a última mensagem do Kafka...")
 for message in consumer:

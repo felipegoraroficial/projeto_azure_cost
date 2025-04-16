@@ -100,6 +100,8 @@ services:
 
   airflow-postgres:
     image: postgres:13
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
@@ -112,6 +114,7 @@ services:
       retries: 5
     networks:
       - datalake-network
+
   redis:
     image: redis:latest
     ports:
@@ -145,6 +148,8 @@ services:
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
       - KEY_ACCESS=${KEY_ACCESS}
       - KEY_SECRETS=${KEY_SECRETS}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - PYTHONPATH= /opt/airflow:/opt/airflow/src
     volumes:
       - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
@@ -207,6 +212,8 @@ services:
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
       - KEY_ACCESS=${KEY_ACCESS}
       - KEY_SECRETS=${KEY_SECRETS}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
       - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags

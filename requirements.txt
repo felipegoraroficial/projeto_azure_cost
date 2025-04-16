@@ -13,5 +13,6 @@ langchain-community
 langchain_experimental
 langchain_openai
 pandas
+psycopg2-binary
 apache-airflow-providers-celery
 redis
