@@ -38,6 +38,6 @@ for message in consumer:
             collection.insert_many(data)
         else:  # Se o JSON for um único objeto
             collection.insert_one(data)
-        print("Dados salvos no MongoDB:", data)
+        print(f"Dados salvos na collection {collection} do MongoDB:", data)
     except Exception as e:
         print("Erro ao salvar no MongoDB:", e)

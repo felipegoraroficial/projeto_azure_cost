@@ -18,3 +18,4 @@ apache-airflow-providers-celery
 redis
 streamlit
 plotly
+matplotlib
