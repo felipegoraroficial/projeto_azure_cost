@@ -6,16 +6,18 @@ import os
 from kafka import KafkaProducer
 from datetime import datetime
 
-# Caminho relativo
-env_path = os.path.join(os.getcwd(), '.env')
-load_dotenv(dotenv_path=env_path)
+def processar_dados():
 
-client_id = os.getenv('CLIENT_ID')
-client_secret = os.getenv('CLIENT_SECRET')
-tenant_id = os.getenv('TENANT_ID')
-subscription_id = os.getenv('SUBSCRIPTION_ID')
+    # Caminho relativo
+    env_path = os.path.join(os.getcwd(), '.env')
+    load_dotenv(dotenv_path=env_path)
 
-while True:
+    client_id = os.getenv('CLIENT_ID')
+    client_secret = os.getenv('CLIENT_SECRET')
+    tenant_id = os.getenv('TENANT_ID')
+    subscription_id = os.getenv('SUBSCRIPTION_ID')
+
+
 
     # Obtém a data atual no formato 'YYYY-MM-DD'
     data_atual = datetime.now().strftime('%Y-%m-%d')
@@ -71,7 +73,7 @@ while True:
 
         # Inicializa o produtor Kafka
         producer = KafkaProducer(
-            bootstrap_servers=['localhost:9091'],
+            bootstrap_servers=['kafka1:19091'],
             value_serializer=lambda v: json.dumps(v).encode('utf-8')
         )
 
@@ -109,6 +111,4 @@ while True:
     finally:
         if 'producer' in locals():
             producer.close()
-
-    time.sleep(60)  # Envia a cada 60 segundos
 

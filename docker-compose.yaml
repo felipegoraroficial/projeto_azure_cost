@@ -1,7 +1,7 @@
 version: '3'
 services:
   minio:
-    image: minio/minio
+    image: minio/minio:RELEASE.2025-02-03T21-03-04Z-cpuv1
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -83,6 +83,21 @@ services:
     networks:
       - datalake-network
 
+  kafka-init-topics:
+    image: confluentinc/cp-kafka:5.3.0
+    hostname: kafka-init-topics
+    command: >
+      bash -c "
+      echo 'Waiting for Kafka to be ready...' &&
+      cub kafka-ready -b kafka1:19091 1 20 &&
+      echo 'Creating Kafka topic: api-topic' &&
+      kafka-topics --create --if-not-exists --zookeeper zookeeper:2181 --topic api-topic --partitions 1 --replication-factor 1
+      "
+    depends_on:
+      - kafka1
+    networks:
+      - datalake-network
+
   kafdrop:
     image: obsidiandynamics/kafdrop
     restart: "always"
@@ -148,6 +163,8 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - PYTHONPATH= /opt/airflow:/opt/airflow/src
+    env_file:
+      - .env
     volumes:
       - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
       - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
@@ -212,6 +229,8 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+    env_file:
+      - .env
     volumes:
       - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
       - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
