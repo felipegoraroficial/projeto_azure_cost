@@ -57,7 +57,7 @@ def gerar_insights():
         agent = create_pandas_dataframe_agent(llm, df, verbose=True, allow_dangerous_code=True)
 
         # Fazer perguntas ao agente LangChain sobre os dados
-        question = "Verifique para mim qual foi o maior custo de recurso cloud em relação ao ultimo mês."
+        question = 'Com base no dataframe, me dê dicas para diminuir custos cloud.'
         try:
             answer = agent.invoke(question)
             print("Insights de IA:")
