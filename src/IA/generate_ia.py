@@ -26,7 +26,7 @@ def gerar_insights():
     gold_file_path = f"s3://{bucket_name}/{gold_file}"
 
     # Conectar ao DuckDB diretamente a memoria RAM
-    con = duckdb.connect('azurecost.db')
+    con = duckdb.connect('src//azurecost.db')
 
     #  Instalar e carregar a extensão httpfs para acessar serviços HTTP(S) como S3
     con.execute("INSTALL httpfs;")

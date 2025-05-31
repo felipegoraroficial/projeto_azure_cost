@@ -5,7 +5,9 @@ from dotenv import load_dotenv
 from tabulate import tabulate
 
 
-def transformar_dados():
+endpoint = 'minio:9000'
+
+def transformar_dados(endpoint):
 
     # Caminho relativo
     env_path = os.path.join(os.getcwd(), '.env')
@@ -15,7 +17,7 @@ def transformar_dados():
     nome_tabela = "gold_data"
 
     #  Configurações do Minio
-    minio_endpoint = 'minio:9000'
+    minio_endpoint = endpoint
     minio_access_key = os.getenv('KEY_ACCESS')
     minio_secret_key = os.getenv('KEY_SECRETS')
     bucket_name = 'azurecost'
@@ -25,7 +27,7 @@ def transformar_dados():
     gold_file_path = f"s3://{bucket_name}/{gold_file}"
 
     # Conectar ao DuckDB diretamente a memoria RAM
-    con = duckdb.connect('azurecost.db')
+    con = duckdb.connect('src//azurecost.db')
 
     #  Instalar e carregar a extensão httpfs para acessar serviços HTTP(S) como S3
     con.execute("INSTALL httpfs;")
