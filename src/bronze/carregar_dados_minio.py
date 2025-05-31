@@ -1,11 +1,14 @@
 import duckdb
+from pymongo import MongoClient
 from minio import Minio
 from minio.error import S3Error
 import os
 from dotenv import load_dotenv
 from tabulate import tabulate
 
-def carregar_dados():
+endpoint_minio = 'minio:9000'
+
+def carregar_dados(endpoint_minio):
 
     # Caminho relativo a variavel de ambiente
     env_path = os.path.join(os.getcwd(), '.env')
@@ -42,7 +45,7 @@ def carregar_dados():
 
     # Configurar o cliente MinIO
     client = Minio(
-        'minio:9000',  
+        endpoint_minio,  
         access_key=os.getenv('MINIO_ROOT_USER'),
         secret_key=os.getenv('MINIO_ROOT_PASSWORD'),
         secure=False
@@ -64,7 +67,7 @@ def carregar_dados():
         print(f"Erro ao interagir com o bucket: {err}")
 
     #  Configurações do Minio 
-    minio_endpoint = 'minio:9000'
+    minio_endpoint = endpoint_minio
     minio_access_key = os.getenv('KEY_ACCESS')
     minio_secret_key = os.getenv('KEY_SECRETS')
     output_file_path = f"s3://{bucket_name}/{file_name}" # Caminho para salvar no Minio

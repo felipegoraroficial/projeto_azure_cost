@@ -2,12 +2,19 @@ from pymongo import MongoClient
 import duckdb
 from tabulate import tabulate
 import os
+from dotenv import load_dotenv
 
-def processar_dados():
+endpoint_mongo = "mongo:27017"
+
+def processar_dados(endpoint_mongo):
+
+    # Caminho relativo
+    env_path = os.path.join(os.getcwd(), '.env')
+    load_dotenv(dotenv_path=env_path)
 
     mongo_user = os.getenv('MONGO_INITDB_ROOT_USERNAME')
     mongo_password = os.getenv('MONGO_INITDB_ROOT_PASSWORD')
-    mongo_host = "mongo:27017"
+    mongo_host = endpoint_mongo
 
     # Conexão ao MongoDB
     client = MongoClient(f"mongodb://{mongo_user}:{mongo_password}@{mongo_host}/")

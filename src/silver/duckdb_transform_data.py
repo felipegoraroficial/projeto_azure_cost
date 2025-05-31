@@ -1,11 +1,12 @@
-import boto3
 import duckdb
 import os
 from dotenv import load_dotenv
 from io import BytesIO
 from tabulate import tabulate
 
-def normalizar_dados():
+endpoint = 'minio:9000'
+
+def normalizar_dados(endpoint):
 
     # Caminho relativo
     env_path = os.path.join(os.getcwd(), '.env')
@@ -15,7 +16,7 @@ def normalizar_dados():
     nome_tabela = "silver_data"
 
     #  Configurações do Minio
-    minio_endpoint = 'minio:9000'
+    minio_endpoint = endpoint
     minio_access_key = os.getenv('KEY_ACCESS')
     minio_secret_key = os.getenv('KEY_SECRETS')
     bucket_name = 'azurecost'
@@ -25,7 +26,7 @@ def normalizar_dados():
     silver_file_path = f"s3://{bucket_name}/{silver_file}"
 
     # Conectar ao DuckDB diretamente a memoria RAM
-    con = duckdb.connect('azurecost.db')
+    con = duckdb.connect('src//azurecost.db')
 
     #  Instalar e carregar a extensão httpfs para acessar serviços HTTP(S) como S3
     con.execute("INSTALL httpfs;")
