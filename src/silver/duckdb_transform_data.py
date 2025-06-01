@@ -45,7 +45,7 @@ def normalizar_dados(endpoint):
 
     # Criar uma nova tabela com os dados transformados em silver
     con.execute(f"""
-    CREATE TABLE IF NOT EXISTS {nome_tabela} AS
+    CREATE OR REPLACE TABLE {nome_tabela} AS
     SELECT DISTINCT
         PreTaxCost,
         CAST(

@@ -69,7 +69,7 @@ def transformar_dados(endpoint):
 
     # Calcular aumento ou diminuição por recurso e grupo de recursos
     con.execute(f"""
-    CREATE TABLE IF NOT EXISTS {nome_tabela} AS
+    CREATE OR REPLACE TABLE {nome_tabela} AS
     SELECT
         ResourceGroup,
         recurso,

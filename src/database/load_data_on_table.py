@@ -93,5 +93,12 @@ def carregando_dados_na_tabela():
 
     # --- Fechar conexão com DuckDB ---
     con_duckdb.close()
+    print("Conexão DuckDB fechada.")
 
     print("Processo completo.")
+
+    try:
+        os.remove('src//azurecost.db')
+        print(f"Arquivo de banco de dados 'src//azurecost.db' removido com sucesso.")
+    except OSError as e:
+        print(f"Erro ao remover o arquivo de banco de dados 'src//azurecost.db': {e}")
