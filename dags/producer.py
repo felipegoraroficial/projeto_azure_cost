@@ -12,7 +12,7 @@ default_args = {
 dag = DAG(
     'kafka-producer',
     default_args=default_args,
-    schedule_interval='*/2 * * * *',
+    schedule_interval='*/5 * * * *',
     catchup=False,
 )
 

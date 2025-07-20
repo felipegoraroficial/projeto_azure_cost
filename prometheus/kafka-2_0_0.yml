@@ -1,0 +1,40 @@
+startDelaySeconds: 0
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+whitelistObjectNames:
+  - kafka.server:*
+  - kafka.controller:*
+  - kafka.network:*
+  - java.lang:type=MemoryPool,name=*
+  - java.lang:type=GarbageCollector,name=*
+  - java.lang:type=Memory
+  - java.lang:type=Runtime
+  - java.lang:type=OperatingSystem
+rules:
+  - pattern: kafka.server<type=(.+), name=(.+)><>Value
+    name: kafka_server_$1_$2
+    type: GAUGE
+    labels:
+      instance: kafka
+  - pattern: kafka.controller<type=(.+), name=(.+)><>Value
+    name: kafka_controller_$1_$2
+    type: GAUGE
+    labels:
+      instance: kafka
+  - pattern: kafka.network<type=(.+), name=(.+)><>Value
+    name: kafka_network_$1_$2
+    type: GAUGE
+    labels:
+      instance: kafka
+  - pattern: java.lang<type=Memory><>(HeapMemoryUsage|NonHeapMemoryUsage)
+    name: java_memory_$1
+    type: GAUGE
+  - pattern: java.lang<type=GarbageCollector, name=(.+)><>CollectionCount
+    name: jvm_gc_$1_collection_count
+    type: COUNTER
+  - pattern: java.lang<type=GarbageCollector, name=(.+)><>CollectionTime
+    name: jvm_gc_$1_collection_time
+    type: COUNTER
+  - pattern: java.lang<type=OperatingSystem><>(ProcessCpuLoad|SystemCpuLoad|FreePhysicalMemorySize|TotalPhysicalMemorySize)
+    name: os_$1
+    type: GAUGE
