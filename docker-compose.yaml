@@ -1,4 +1,4 @@
-version: '3'
+version: '3.8'
 services:
   minio:
     image: minio/minio:RELEASE.2025-02-03T21-03-04Z-cpuv1
@@ -7,9 +7,9 @@ services:
       - "9001:9001"
     command: server /data --console-address ":9001"
     volumes:
-      - ./minio_data:/data
+      - minio_data:/data
     networks:
-      - datalake-network
+      - datalake_internal
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
@@ -19,53 +19,28 @@ services:
       - .env
     restart: always
 
-  mongo:
-    build:
-      context: .
-      dockerfile: Dockerfile.mongo
-    restart: "always"
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
-    ports:
-      - "27017:27017"
-    volumes:
-      - ./mongo_data:/data/db
-    networks:
-      - datalake-network
-
-  mongo-express:
-    image: mongo-express
-    restart: "always"
-    ports:
-      - "8081:8081"
-    environment:
-      - ME_CONFIG_MONGODB_ADMINUSERNAME=${ME_CONFIG_MONGODB_ADMINUSERNAME}
-      - ME_CONFIG_MONGODB_ADMINPASSWORD=${ME_CONFIG_MONGODB_ADMINPASSWORD}
-      - ME_CONFIG_MONGODB_URL=${ME_CONFIG_MONGODB_URL}
-      - ME_CONFIG_BASICAUTH=${ME_CONFIG_BASICAUTH}
-    depends_on:
-      - mongo
-    networks:
-      - datalake-network
-
   zookeeper:
-    image: zookeeper:3.4.9
+    image: zookeeper:3.9.2
     hostname: zookeeper
-    ports:
-      - "2181:2181"
     environment:
       ZOO_MY_ID: 1
-      ZOO_PORT: 2181
-      ZOO_SERVERS: server.1=zookeeper:2888:3888
+      ZOO_CLIENT_PORT: 2181
+      ZOO_4LW_COMMANDS_WHITELIST: ruok,srvr,stat,conf
     volumes:
-      - ./kafka_data/zookeeper/data:/data
-      - ./kafka_data/zookeeper/datalog:/datalog
+      - zookeeper_data:/data
+      - zookeeper_datalog:/datalog
     networks:
-      - datalake-network
+      - datalake_internal
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo ruok | nc localhost 2181 | grep imok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   kafka1:
-    image: confluentinc/cp-kafka:5.3.0
+    build:
+      context: .
+      dockerfile: Dockerfile.kafka
     hostname: kafka1
     ports:
       - "9091:9091"
@@ -76,44 +51,152 @@ services:
       - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
       - KAFKA_BROKER_ID=1
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_OPTS=-javaagent:/jmx_exporter/jmx_prometheus_javaagent-0.19.0.jar=7075:/jmx_exporter/kafka-2_0_0.yml
     volumes:
-      - ./kafka_data/kafka1/data:/var/lib/kafka/data
+      - kafka1_data:/var/lib/kafka/data
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     networks:
-      - datalake-network
+      - datalake_internal
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:7075/metrics || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 180s
 
   kafka-init-topics:
-    image: confluentinc/cp-kafka:5.3.0
+    build:
+      context: .
+      dockerfile: Dockerfile.kafka    
     hostname: kafka-init-topics
-    command: >
-      bash -c "
-      echo 'Waiting for Kafka to be ready...' &&
-      cub kafka-ready -b kafka1:19091 1 60 &&
-      echo 'Creating Kafka topic: api-topic' &&
-      kafka-topics --create --if-not-exists --zookeeper zookeeper:2181 --topic api-topic --partitions 1 --replication-factor 1 --config retention.ms=86400000
-      "
+    user: root                       
+    command: > 
+      bash -c '
+        export KAFKA_LOG4J_OPTS="-Dlog4j.configuration=file:/etc/kafka/log4j.properties";
+        echo "Waiting for Kafka to be ready..." ;
+        for i in {1..120}; do
+          nc -z kafka1 19091 && break;
+          sleep 1;
+        done ;
+        if ! nc -z kafka1 19091; then
+          echo "Kafka não está pronto."; exit 1;
+        fi ;
+        echo "Creating Kafka topic: api-topic" ;
+        kafka-topics --create --if-not-exists \
+          --bootstrap-server kafka1:19091 \
+          --topic api-topic \
+          --partitions 1 \
+          --replication-factor 1 \
+          --config retention.ms=3600000
+      '
     depends_on:
-      - kafka1
+      kafka1:
+        condition: service_healthy
     networks:
-      - datalake-network
+      - datalake_internal
+    volumes:
+      - /tmp:/tmp                    
 
   kafdrop:
-    image: obsidiandynamics/kafdrop
+    image: obsidiandynamics/kafdrop:3.31.0
     restart: "always"
     ports:
       - "9002:9000"
     environment:
       - KAFKA_BROKERCONNECT=kafka1:19091
     depends_on:
-      - kafka1
+      kafka1:
+        condition: service_healthy
     networks:
-      - datalake-network
+      - datalake_internal
+
+  spark-master:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
+    image: meu-spark:com-curl
+    container_name: spark-master
+    environment:
+      - SPARK_MODE=master
+      - SPARK_MASTER_WEBUI_PORT=8088
+      - SPARK_EXTRA_PACKAGES=org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.11.1026,io.delta:delta-core_2.12:2.4.0
+    ports:
+      - "7077:7077"
+      - "8088:8088"
+    volumes:
+      - spark_data:/data
+    networks:
+      - datalake_internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8088"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  spark-worker-1:
+    image: meu-spark:com-curl
+    container_name: spark-worker-1
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=8g
+      - SPARK_WORKER_CORES=2
+      - SPARK_EXTRA_PACKAGES=org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.11.1026,io.delta:delta-core_2.12:2.4.0
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    volumes:
+      - spark_data:/data
+    networks:
+      - datalake_internal
+
+  spark-worker-2:
+    image: meu-spark:com-curl
+    container_name: spark-worker-2
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=8g
+      - SPARK_WORKER_CORES=2
+      - SPARK_EXTRA_PACKAGES=org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.11.1026,io.delta:delta-core_2.12:2.4.0
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    ports:
+      - "8181:8081"
+    volumes:
+      - spark_data:/data
+    networks:
+      - datalake_internal
+
+  jupyter-pyspark:
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
+    container_name: jupyter-pyspark
+    ports:
+      - "8888:8888"
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - PYSPARK_SUBMIT_ARGS=--packages io.delta:delta-core_2.12:2.4.0,org.apache.hadoop:hadoop-aws:3.3.4 pyspark-shell
+      - PYTHONPATH=/opt/airflow:/opt/airflow/src
+    env_file:
+      - .env
+    volumes:
+      - notebooks:/home/jovyan/work
+    networks:
+      - datalake_internal
+    restart: always
 
   airflow-postgres:
     image: postgres:13
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
     environment:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
@@ -125,26 +208,51 @@ services:
       interval: 5s
       retries: 5
     networks:
-      - datalake-network
+      - datalake_internal
 
   redis:
-    image: redis:latest
-    ports:
-      - "6379:6379"
+    image: redis:7.2.0
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     networks:
-      - datalake-network
+      - datalake_internal
+
+  statsd-exporter:
+    image: prom/statsd-exporter:v0.26.0
+    container_name: statsd-exporter
+    ports:
+      - "8125:8125/udp"
+      - "9102:9102"
+    networks:
+      - datalake_internal
+    command:
+      - "--statsd.listen-udp=:8125"
+      - "--web.listen-address=:9102"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9102/metrics"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   airflow-webserver:
     build:
       context: .
       dockerfile: Dockerfile.airflow 
     depends_on:
-      - airflow-postgres
-      - redis
+      airflow-postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      statsd-exporter:
+        condition: service_started
     environment:
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-postgres/airflow
-      - AIRFLOW__CORE__FERNET_KEY=''
       - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
       - AIRFLOW__CORE__LOAD_EXAMPLES=false
       - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth
@@ -154,15 +262,12 @@ services:
       - _AIRFLOW_WWW_USER_PASSWORD=airflow
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
-      - KEY_ACCESS=${KEY_ACCESS}
-      - KEY_SECRETS=${KEY_SECRETS}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - PYTHONPATH= /opt/airflow:/opt/airflow/src
+      - AIRFLOW__CORE__FERNET_KEY=${FERNET_KEY}
+      - AIRFLOW__METRICS__STATSD_ON=True
+      - AIRFLOW__METRICS__STATSD_HOST=statsd-exporter
+      - AIRFLOW__METRICS__STATSD_PORT=8125
+      - AIRFLOW__METRICS__STATSD_PREFIX=airflow
+      - PYTHONPATH=/opt/airflow:/opt/airflow/src
     env_file:
       - .env
     volumes:
@@ -180,23 +285,32 @@ services:
       timeout: 10s
       retries: 5
     networks:
-      - datalake-network
+      - datalake_internal
 
   airflow-scheduler:
     build:
       context: .
       dockerfile: Dockerfile.airflow
     depends_on:
-      - airflow-webserver
-      - redis
+      airflow-postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      statsd-exporter:
+        condition: service_started
     environment:
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-postgres/airflow
-      - AIRFLOW__CORE__FERNET_KEY=''
       - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
       - AIRFLOW__CORE__LOAD_EXAMPLES=false
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - AIRFLOW__CORE__FERNET_KEY=${FERNET_KEY}
+      - AIRFLOW__METRICS__STATSD_ON=True
+      - AIRFLOW__METRICS__STATSD_HOST=statsd-exporter
+      - AIRFLOW__METRICS__STATSD_PORT=8125
+      - AIRFLOW__METRICS__STATSD_PREFIX=airflow
+      - PYTHONPATH=/opt/airflow:/opt/airflow/src
     volumes:
       - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
       - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
@@ -205,30 +319,31 @@ services:
       - ${AIRFLOW_PROJ_DIR:-.}/src:/opt/airflow/src
     command: scheduler
     networks:
-      - datalake-network
+      - datalake_internal
 
   airflow-worker-1:
     build:
       context: .
       dockerfile: Dockerfile.airflow
     depends_on:
-      - airflow-scheduler
-      - redis
+      airflow-postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      statsd-exporter:
+        condition: service_started
     environment:
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-postgres/airflow
-      - AIRFLOW__CORE__FERNET_KEY=''
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD} 
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
-      - KEY_ACCESS=${KEY_ACCESS}
-      - KEY_SECRETS=${KEY_SECRETS}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - AIRFLOW__CORE__FERNET_KEY=${FERNET_KEY}
+      - SPARK_EXTRA_PACKAGES=org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.11.1026,io.delta:delta-core_2.12:2.4.0
+      - AIRFLOW__METRICS__STATSD_ON=True
+      - AIRFLOW__METRICS__STATSD_HOST=statsd-exporter
+      - AIRFLOW__METRICS__STATSD_PORT=8125
+      - AIRFLOW__METRICS__STATSD_PREFIX=airflow
+      - PYTHONPATH=/opt/airflow:/opt/airflow/src
     env_file:
       - .env
     volumes:
@@ -239,7 +354,7 @@ services:
       - ${AIRFLOW_PROJ_DIR:-.}/src:/opt/airflow/src
     command: celery worker
     networks:
-      - datalake-network
+      - datalake_internal
 
   streamlit-app:
     build:
@@ -248,22 +363,48 @@ services:
     restart: "always"
     ports:
       - "8501:8501"
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD} 
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     env_file:
       - .env
     volumes:
       - .:/app
     networks:
-      - datalake-network
+      - datalake_internal
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - datalake_internal
+
+  grafana:
+    image: grafana/grafana:12.0.2
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - datalake_internal
 
 
 networks:
-  datalake-network:
-    external: false
+  datalake_internal:
+    driver: bridge
 
 volumes:
+  minio_data:
   airflow-postgres-db-volume:
+  zookeeper_data:
+  zookeeper_datalog:
+  kafka1_data:
+  spark_data:
+  notebooks:
+  grafana_data:

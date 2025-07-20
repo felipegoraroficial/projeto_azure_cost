@@ -1,8 +1,8 @@
 .env
 venv/
 kafka_data
+spark-data
 logs/**
-mongo_data
 minio_data/
 minio_data/.minio.sys
 plugins/**

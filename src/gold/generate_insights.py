@@ -1,98 +1,113 @@
-import duckdb
-from datetime import datetime
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, when, unix_timestamp, lit
+from delta.tables import DeltaTable
+from pyspark.sql.types import StructType, StructField, DoubleType, StringType
+from pyspark.ml.feature import VectorAssembler
+from pyspark.ml.regression import LinearRegression
+from pyspark.ml.linalg import DenseVector
 import os
-from dotenv import load_dotenv
-from tabulate import tabulate
 
 
-endpoint = 'minio:9000'
+def calcular_dados_futuro():
 
-def transformar_dados(endpoint):
+    DELTA_LAKE_PACKAGE = "io.delta:delta-core_2.12:3.3.2"
 
-    # Caminho relativo
-    env_path = os.path.join(os.getcwd(), '.env')
-    load_dotenv(dotenv_path=env_path)
+    spark = SparkSession.builder \
+        .appName("Silver") \
+        .master("spark://spark-master:7077") \
+        .config("spark.executor.cores", "1") \
+        .config("spark.executor.memory", "8g") \
+        .config("spark.cores.max", "2") \
+        .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
+        .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
+        .config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000") \
+        .config("spark.hadoop.fs.s3a.access.key", os.getenv("KEY_ACCESS")) \
+        .config("spark.hadoop.fs.s3a.secret.key", os.getenv("KEY_SECRETS")) \
+        .config("spark.hadoop.fs.s3a.path.style.access", "true") \
+        .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
+        .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider") \
+        .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.11.1026,io.delta:delta-core_2.12:2.4.0") \
+        .getOrCreate()
+    
+    # Caminho para a tabela Delta (no seu MinIO)
+    silver_path = "s3a://azurecost/silver"
 
-    # Nome da tabela processada ao extrair dados do MongoDB
-    nome_tabela = "gold_data"
+    # Inicializa objeto DeltaTable
+    delta_table = DeltaTable.forPath(spark, silver_path)
 
-    #  Configurações do Minio
-    minio_endpoint = endpoint
-    minio_access_key = os.getenv('KEY_ACCESS')
-    minio_secret_key = os.getenv('KEY_SECRETS')
-    bucket_name = 'azurecost'
-    silver_file = 'silver/dados.parquet'
-    silver_file_path = f"s3://{bucket_name}/{silver_file}"
-    gold_file = 'gold/dados.parquet'
-    gold_file_path = f"s3://{bucket_name}/{gold_file}"
+    # Obtém todos os valores únicos da partição
+    partitions_df = delta_table.toDF().select("data_ref").distinct()
 
-    # Conectar ao DuckDB diretamente a memoria RAM
-    con = duckdb.connect('src//azurecost.db')
+    # Obtém o valor mais recente da partição
+    max_partition = partitions_df.agg({"data_ref": "max"}).collect()[0][0]
+    print(f"Última partição disponível: {max_partition}")
 
-    #  Instalar e carregar a extensão httpfs para acessar serviços HTTP(S) como S3
-    con.execute("INSTALL httpfs;")
-    con.execute("LOAD httpfs;")
-    print("Extensão httpfs instalada e carregada.")
+    # Lê os dados somente da última partição
+    df = spark.read.format("delta").load(silver_path).filter(f"data_ref = '{max_partition}'")
 
-    #  Configurar as credenciais do Minio
-    con.execute(f"""
-        SET s3_endpoint='{minio_endpoint}';
-        SET s3_access_key_id='{minio_access_key}';
-        SET s3_secret_access_key='{minio_secret_key}';
-        SET s3_use_ssl=False;
-        SET s3_url_style='path';
-    """)
-    print("Credenciais do Minio configuradas.")
+    df_tend = df.withColumn(
+        "TendenciaCusto",
+        when(col("Pct_Change") > 0, "Subindo")
+        .when(col("Pct_Change") < 0, "Descendo")
+        .otherwise("Estável")
+    )
 
-    # Obter a data atual em formato "YYYY-MM-DD"
-    current_date = datetime.now().strftime('%Y-%m-%d')
+    # 1. Converter UsageDate em número
+    df_ts = df_tend.withColumn("UsageDate_num", unix_timestamp(col("UsageDate")))
 
-    # Criar uma tabela temporária a partir do arquivo Parquet
-    con.execute(f"CREATE TEMP TABLE IF NOT EXISTS gold_temp_table AS SELECT * FROM read_parquet('{silver_file_path}')")
+    # 2. Listar todos os recursos únicos
+    resource_list = [row["ResourceName"] for row in df_ts.select("ResourceName").distinct().collect()]
 
-    # Verificar se existe `UsageDate` igual à data atual
-    missing_date_groups = con.execute(f"""
-    SELECT DISTINCT ResourceGroup, recurso
-    FROM read_parquet('{silver_file_path}')
-    EXCEPT
-    SELECT ResourceGroup, recurso
-    FROM read_parquet('{silver_file_path}')
-    WHERE UsageDate = '{current_date}';
-    """).fetchall()
+    previsoes = []
 
-    # Inserir uma nova linha para cada grupo que está faltando a data atual
-    for resource_group, resource in missing_date_groups:
-        con.execute(f"""
-        INSERT INTO gold_temp_table (ResourceGroup, recurso, UsageDate, PreTaxCost, Currency)
-        VALUES ('{resource_group}', '{resource}', '{current_date}', 0, '-');
-        """)
+    # 3. Loop para treinar e prever para cada ResourceName
+    for resource in resource_list:
+        df_recurso = df_ts.filter(col("ResourceName") == resource)
 
-    # Calcular aumento ou diminuição por recurso e grupo de recursos
-    con.execute(f"""
-    CREATE OR REPLACE TABLE {nome_tabela} AS
-    SELECT
-        ResourceGroup,
-        recurso,
-        UsageDate,
-        PreTaxCost,
-        PreTaxCost - LAG(PreTaxCost) OVER (PARTITION BY ResourceGroup, recurso ORDER BY UsageDate) AS change
-    FROM gold_temp_table
-    ORDER BY ResourceGroup, recurso, UsageDate;
-    """)
+        assembler = VectorAssembler(inputCols=["UsageDate_num"], outputCol="features")
+        df_feat = assembler.transform(df_recurso)
 
-    # **Exibir os dados transformados em formato tabular**
-    print("Dados transformados:")
-    query = f"SELECT * FROM {nome_tabela} ORDER BY UsageDate DESC LIMIT 10"
-    result = con.execute(query).fetchall()
-    columns = [desc[0] for desc in con.execute(f"DESCRIBE {nome_tabela}").fetchall()]
-    print(tabulate(result, headers=columns, tablefmt="grid"))
+        if df_feat.count() < 2:
+            previsoes.append((resource, None))
+            continue
 
-    # **Exibir o DESCRIBE da tabela**
-    print("\nEstrutura da tabela (DESCRIBE):")
-    describe_query = f"DESCRIBE {nome_tabela}"
-    describe_result = con.execute(describe_query).fetchall()
-    print(tabulate(describe_result, headers=["Column Name", "Data Type", "Nullable"], tablefmt="grid"))
+        lr = LinearRegression(featuresCol="features", labelCol="PreTaxCost")
+        model = lr.fit(df_feat)
 
-    # Salvar a tabela do DuckDB para o bucket do Minio em formato Parquet
-    con.execute(f"COPY {nome_tabela} TO '{gold_file_path}' (FORMAT PARQUET);")
-    print(f"Tabela '{nome_tabela}' salva com sucesso em '{gold_file_path}' no bucket '{bucket_name}'.")
+        last_ts = df_feat.agg({"UsageDate_num": "max"}).first()[0]
+        future_ts = last_ts + 600
+
+        row_prediction = df_feat.sql_ctx.createDataFrame([
+            (DenseVector([float(future_ts)]),)
+        ], ["features"])
+
+        result = model.transform(row_prediction).select("prediction").collect()[0][0]
+        previsoes.append((resource, result))
+
+    # 4. Criar DataFrame com as previsões
+    schema = StructType([
+        StructField("ResourceName", StringType(), True),
+        StructField("PrevisaoProxima", DoubleType(), True),
+    ])
+
+    df_previsao = spark.createDataFrame(previsoes, schema)
+
+    # ⚠️ 5. Remover coluna PrevisaoProxima anterior (se existir) para evitar ambiguidade
+    if "PrevisaoProxima" in df_ts.columns:
+        df_ts = df_ts.drop("PrevisaoProxima")
+
+    # 6. Join com as previsões
+    df_final = df_ts.join(df_previsao, on="ResourceName", how="left")
+
+    # 7. Seleciona e exibe
+    df_final.orderBy("UsageDate").show(truncate=False)
+
+    # Caminho S3A para os dados no formato delta na camada silver
+    gold_path = "s3a://azurecost/gold"
+
+    df_final.write.format("delta") \
+        .mode("overwrite") \
+        .partitionBy("data_ref") \
+        .save(gold_path)
+    
+    spark.stop()

@@ -1,0 +1,15 @@
+FROM jupyter/pyspark-notebook:spark-3.4.0
+
+USER root
+
+ENV LANG C.UTF-8
+
+# Copia requirements
+COPY requirements.txt /tmp/requirements.txt
+
+# Instala dependências
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r /tmp/requirements.txt && \
+    rm -rf /root/.cache/pip
+
+USER $NB_UID

@@ -1,9 +1,7 @@
 kafka-python
-pymongo
 requests
-duckdb
-tabulate
-numpy
+numpy==1.26.4
+scipy==1.11.4
 boto3
 minio
 python-dotenv
@@ -15,7 +13,11 @@ langchain_openai
 pandas
 psycopg2-binary
 apache-airflow-providers-celery
+apache-airflow-providers-apache-spark
+apache-airflow-providers-amazon
 redis
 streamlit
 plotly
 matplotlib
+pyspark==3.4.0
+delta-spark
