@@ -13,7 +13,6 @@ pyspark==3.4.0
 delta-spark==2.4.0
 
 # Cloud & Utilities
-boto3
 minio
 psycopg2-binary
 redis
