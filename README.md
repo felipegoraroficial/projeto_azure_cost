@@ -247,3 +247,29 @@ Agora basta seguir esses passos:
 <div align="center">
   <img src="https://github.com/user-attachments/assets/a2b9caac-dfbb-4687-9e5d-791d75d2d61f" alt="Testando Jupyter">
 </div>
+
+## Acessando os Recursos via Localhost:
+
+- Minio (http://localhost:9001)
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/7efae4b0-0731-45a4-bcab-9503ed219924" alt="Minio">
+</div>
+
+- Kafkadrop (http://localhost:9002)
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/391a327c-5041-48e5-acfe-1466595c5562" alt="Kafka">
+</div>
+
+- Spark (http://localhost:8088)
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/722b10b9-fad9-4de5-8627-e2a46a65d2ac" alt="Spark">
+</div>
+
+- Airflow (http://localhost:8080)
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/e8f11469-1ba4-48aa-9e57-e4b529f8f057" alt="Airflow">
+</div>
