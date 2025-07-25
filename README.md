@@ -172,3 +172,78 @@ Necessário para que o airflow só start um fluxo se houver files na camada do K
   "verify": false
 }
 ```
+
+## Como usar Jupyter Notebook:
+
+Use o comando :
+
+`docker ps` 
+para lsitar todas as isntancias em execção do docker
+
+Procure pela IMAGE projeto_azure_cost-jupyter-pyspark e execute o comando:
+
+`docker logs jupyter-pyspark` 
+
+Isso irá listar o logs da imagem projeto_azure_cost-jupyter-pyspark
+
+Agora basta procurar pelo link de acesso ao Server do Jupyter-Pyspark
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/f1022ec9-aaea-4444-89f3-4487f66ca13b" alt="Jupyter Server">
+</div>
+
+Ao clicar nesse link em marcação, você será direiconado ao Jupyter em sua localhost:
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/b9f0f84f-661a-4dae-8be8-6fd2fba4625c" alt="Jupyter local">
+</div>
+
+Para rodar o Jupyter em seu VSCode, é necessário ter instalado a extensão:
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/f39ffadb-f340-43e9-83f0-b3a537872935" alt="Jupyter extensão">
+</div>
+
+Agora basta seguir esses passos:
+
+1 - Em um arquivo ipynb, selecione o Kernel
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/6fe9a93e-0710-4fdb-a3e0-6955c542fb85" alt="Select Kernel">
+</div>
+
+2 - Selecione Existing Jupyter Server...
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/2543cd86-4634-4c52-a4af-5ac93f5a183b" alt="Existente Jupyter">
+</div>
+
+3 - Insira o localhost (o mesmo do logs)
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/bc40aa33-11a9-47ad-944e-93454e2dca53" alt="Localhost Jupyter">
+</div>
+
+4 - Insira o token (o mesmo do logs)
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/e5438abd-74f8-4f19-bfe7-cb90c1be3809" alt="token Jupyter">
+</div>
+
+5 - Insira um nome para sua conexão
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/d0cf435a-9943-4e8b-91b7-d987b055a800" alt="Name Jupyter">
+</div>
+
+5 - Selecione o Kernel da conexão
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/36b88a79-ef9c-4fb8-8881-321f72e364b9" alt="Kernel Jupyter">
+</div>
+
+5 - Agora está tudo certo para realizar um teste com pyspark
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/a2b9caac-dfbb-4687-9e5d-791d75d2d61f" alt="Testando Jupyter">
+</div>
