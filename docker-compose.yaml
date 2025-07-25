@@ -124,7 +124,7 @@ services:
     environment:
       - SPARK_MODE=master
       - SPARK_MASTER_WEBUI_PORT=8088
-      - SPARK_EXTRA_PACKAGES=org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.11.1026,io.delta:delta-core_2.12:2.4.0
+      - SPARK_EXTRA_PACKAGES=org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.11.1026,io.delta:delta-core_2.12:2.4.0,org.postgresql:postgresql:42.6.0
     ports:
       - "7077:7077"
       - "8088:8088"
@@ -147,7 +147,7 @@ services:
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_WORKER_MEMORY=8g
       - SPARK_WORKER_CORES=2
-      - SPARK_EXTRA_PACKAGES=org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.11.1026,io.delta:delta-core_2.12:2.4.0
+      - SPARK_EXTRA_PACKAGES=org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.11.1026,io.delta:delta-core_2.12:2.4.0,org.postgresql:postgresql:42.6.0
     depends_on:
       spark-master:
         condition: service_healthy
@@ -166,7 +166,7 @@ services:
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_WORKER_MEMORY=8g
       - SPARK_WORKER_CORES=2
-      - SPARK_EXTRA_PACKAGES=org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.11.1026,io.delta:delta-core_2.12:2.4.0
+      - SPARK_EXTRA_PACKAGES=org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.11.1026,io.delta:delta-core_2.12:2.4.0,org.postgresql:postgresql:42.6.0
     depends_on:
       spark-master:
         condition: service_healthy
@@ -186,7 +186,8 @@ services:
       - "8888:8888"
     environment:
       - JUPYTER_ENABLE_LAB=yes
-      - PYSPARK_SUBMIT_ARGS=--packages io.delta:delta-core_2.12:2.4.0,org.apache.hadoop:hadoop-aws:3.3.4 pyspark-shell
+      - PYSPARK_SUBMIT_ARGS=--packages io.delta:delta-core_2.12:2.4.0,org.apache.hadoop:hadoop-aws:3.3.4,org.postgresql:postgresql:42.6.0 pyspark-shell
+      - JUPYTER_ENABLE_LAB=yes
       - PYTHONPATH=/opt/airflow:/opt/airflow/src
     env_file:
       - .env
@@ -389,7 +390,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+        - GF_SECURITY_ADMIN_USER=admin
+        - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
       - grafana_data:/var/lib/grafana
     depends_on:

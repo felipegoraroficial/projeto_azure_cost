@@ -1,17 +1,20 @@
 import streamlit as st
-from datetime import datetime
+from langchain_experimental.agents import create_pandas_dataframe_agent
+from langchain_openai import ChatOpenAI
 import os
 from dotenv import load_dotenv
 import psycopg2
 import pandas as pd
 import plotly.express as px
 
+env_path = os.path.join(os.getcwd(), '.env')
+load_dotenv(dotenv_path=env_path)
+
+ai_key = os.getenv('OPENAI_API_KEY')
+
 st.markdown("<h1 style='text-align: center;'>Azure Cost</h1>", unsafe_allow_html=True)
 
 def load_data():
-
-    env_path = os.path.join(os.getcwd(), '.env')
-    load_dotenv(dotenv_path=env_path)
 
     # --- Configurações de conexão com o PostgreSQL ---
     DB_HOST = "airflow-postgres"
@@ -44,10 +47,22 @@ def load_data():
         return st.error(f"Erro ao conectar ao banco de dados com os dados: {e}")
 df = load_data()
 
+llm = ChatOpenAI(temperature=0.7, model="gpt-4o-mini", openai_api_key=ai_key)
+agent = create_pandas_dataframe_agent(llm, df, verbose=True, allow_dangerous_code=True)
 
 row_count = len(df)
 st.markdown("<h2 style='text-align: center; color: green;'>Conectado ao banco de dados com sucesso.</h2>", unsafe_allow_html=True)
 st.markdown(f"<h2 style='text-align: center; color: green;'>Número de linhas na tabela: {row_count}</h2>", unsafe_allow_html=True)
+
+st.title("Pergunte para a IA")
+
+# Campo para o usuário digitar a pergunta
+pergunta = st.text_input("Digite sua pergunta:")
+
+if pergunta:
+    answer = agent.invoke(pergunta)
+    print("Resposta:")
+    print(answer)
 
 # Convertendo a coluna usagedate para o formato de data e extraindo o mês
 df["usagedate"] = pd.to_datetime(df["usagedate"])
@@ -72,7 +87,7 @@ st.plotly_chart(fig_pizza)
 barra_lateral = df.sort_values(by="pretaxcost", ascending=False)
 
 # Criando o gráfico de barras horizontais
-fig_barra_lateral = px.bar(barra_lateral, x="pretaxcost", y="recurso", orientation='h', title="Custo dos Recursos")
+fig_barra_lateral = px.bar(barra_lateral, x="pretaxcost", y="resourcename", orientation='h', title="Custo dos Recursos")
 
 # Exibindo no Streamlit
 st.plotly_chart(fig_barra_lateral)
