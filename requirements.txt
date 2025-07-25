@@ -1,23 +1,31 @@
-kafka-python
-requests
+# Providers Airflow
+apache-airflow-providers-celery
+apache-airflow-providers-apache-spark
+apache-airflow-providers-amazon
+
+# Data/ML
+pandas
 numpy==1.26.4
 scipy==1.11.4
-boto3
+matplotlib
+plotly
+pyspark==3.4.0
+delta-spark==2.4.0
+
+# Cloud & Utilities
 minio
+psycopg2-binary
+redis
 python-dotenv
+requests
+streamlit
+
+# AI / LangChain
 openai
 langchain
 langchain-community
 langchain_experimental
 langchain_openai
-pandas
-psycopg2-binary
-apache-airflow-providers-celery
-apache-airflow-providers-apache-spark
-apache-airflow-providers-amazon
-redis
-streamlit
-plotly
-matplotlib
-pyspark==3.4.0
-delta-spark
+
+# Kafka
+kafka-python

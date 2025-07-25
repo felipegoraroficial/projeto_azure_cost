@@ -36,6 +36,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: always
 
   kafka1:
     build:
@@ -65,6 +66,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 180s
+    restart: always
 
   kafka-init-topics:
     build:
@@ -97,7 +99,8 @@ services:
     networks:
       - datalake_internal
     volumes:
-      - /tmp:/tmp                    
+      - /tmp:/tmp       
+    restart: always             
 
   kafdrop:
     image: obsidiandynamics/kafdrop:3.31.0
