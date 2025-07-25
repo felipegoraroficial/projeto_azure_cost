@@ -72,7 +72,7 @@ st.plotly_chart(fig_pizza)
 barra_lateral = df.sort_values(by="pretaxcost", ascending=False)
 
 # Criando o gráfico de barras horizontais
-fig_barra_lateral = px.bar(barra_lateral, x="pretaxcost", y="recurso", orientation='h', title="Custo dos Recursos")
+fig_barra_lateral = px.bar(barra_lateral, x="pretaxcost", y="resourcename", orientation='h', title="Custo dos Recursos")
 
 # Exibindo no Streamlit
 st.plotly_chart(fig_barra_lateral)
