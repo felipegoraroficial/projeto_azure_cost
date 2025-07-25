@@ -27,11 +27,18 @@ O projeto foi desenvolvido utilizando a linguagem de programação Python/Spark 
 
 A arquitetura do projeto foi construida utilizando Docker onde utilizamos container para execução de recursos do Apache Kafka, Apache Spark, Minio, Apache Airflow, Postgres e Streamlit.
 
-Foi criado variáveis de ambientes para armazemento de Keys e Senhas aos recursos.
-
 <div align="center">
   <img src="https://github.com/user-attachments/assets/5835c3ac-fc38-4809-bcd7-6af2a91497cd" alt="Desenho Técnico">
   <p><b>Desenho Técnico</b></p>
+</div>
+
+<p align="left">
+</p>
+
+Para ambiente de desenvolvimento foi utilizado a imagem Docker Jupyter com Pyspark
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/bf65b926-1bef-4d2e-95cf-5f1783811b06" alt="Ambientes">
 </div>
 
 <p align="left">
