@@ -273,3 +273,15 @@ Agora basta seguir esses passos:
 <div align="center">
   <img src="https://github.com/user-attachments/assets/e8f11469-1ba4-48aa-9e57-e4b529f8f057" alt="Airflow">
 </div>
+
+- Streamlit (http://localhost:8501)
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/c92a8332-387d-4b1b-bae4-062ef3672073" alt="Streamlit">
+</div>
+
+- Grafana (http://localhost:3000)
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/65b8ab80-d4df-43e1-862d-b0a3ba52c461" alt="Grafana">
+</div>
