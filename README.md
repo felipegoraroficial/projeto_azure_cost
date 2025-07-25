@@ -27,15 +27,20 @@ O projeto foi desenvolvido utilizando a linguagem de programação Python/Spark 
 
 A arquitetura do projeto foi construida utilizando Docker onde utilizamos container para execução de recursos do Apache Kafka, Apache Spark, Minio, Apache Airflow, Postgres e Streamlit.
 
-Foi criado variáveis de ambientes para armazemento de Keys e Senhas aos recursos.
-
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/ed76af20-f6a2-4727-81d3-8be1c91a0a1e" alt="Desenho Técnico">
+  <img src="https://github.com/user-attachments/assets/5835c3ac-fc38-4809-bcd7-6af2a91497cd" alt="Desenho Técnico">
   <p><b>Desenho Técnico</b></p>
 </div>
 
 <p align="left">
 </p>
+
+Para ambiente de desenvolvimento foi utilizado a imagem Docker Jupyter com Pyspark
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/bf65b926-1bef-4d2e-95cf-5f1783811b06" alt="Ambientes" width="250"/>
+</div>
+
 
 ## Meta:
 
@@ -167,3 +172,104 @@ Necessário para que o airflow só start um fluxo se houver files na camada do K
   "verify": false
 }
 ```
+
+## Como usar Jupyter Notebook:
+
+Use o comando :
+
+`docker ps` 
+para lsitar todas as isntancias em execção do docker
+
+Procure pela IMAGE projeto_azure_cost-jupyter-pyspark e execute o comando:
+
+`docker logs jupyter-pyspark` 
+
+Isso irá listar o logs da imagem projeto_azure_cost-jupyter-pyspark
+
+Agora basta procurar pelo link de acesso ao Server do Jupyter-Pyspark
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/f1022ec9-aaea-4444-89f3-4487f66ca13b" alt="Jupyter Server">
+</div>
+
+Ao clicar nesse link em marcação, você será direiconado ao Jupyter em sua localhost:
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/b9f0f84f-661a-4dae-8be8-6fd2fba4625c" alt="Jupyter local">
+</div>
+
+Para rodar o Jupyter em seu VSCode, é necessário ter instalado a extensão:
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/f39ffadb-f340-43e9-83f0-b3a537872935" alt="Jupyter extensão">
+</div>
+
+Agora basta seguir esses passos:
+
+1 - Em um arquivo ipynb, selecione o Kernel
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/6fe9a93e-0710-4fdb-a3e0-6955c542fb85" alt="Select Kernel">
+</div>
+
+2 - Selecione Existing Jupyter Server...
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/2543cd86-4634-4c52-a4af-5ac93f5a183b" alt="Existente Jupyter">
+</div>
+
+3 - Insira o localhost (o mesmo do logs)
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/bc40aa33-11a9-47ad-944e-93454e2dca53" alt="Localhost Jupyter">
+</div>
+
+4 - Insira o token (o mesmo do logs)
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/e5438abd-74f8-4f19-bfe7-cb90c1be3809" alt="token Jupyter">
+</div>
+
+5 - Insira um nome para sua conexão
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/d0cf435a-9943-4e8b-91b7-d987b055a800" alt="Name Jupyter">
+</div>
+
+5 - Selecione o Kernel da conexão
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/36b88a79-ef9c-4fb8-8881-321f72e364b9" alt="Kernel Jupyter">
+</div>
+
+5 - Agora está tudo certo para realizar um teste com pyspark
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/a2b9caac-dfbb-4687-9e5d-791d75d2d61f" alt="Testando Jupyter">
+</div>
+
+## Acessando os Recursos via Localhost:
+
+- Minio (http://localhost:9001)
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/7efae4b0-0731-45a4-bcab-9503ed219924" alt="Minio">
+</div>
+
+- Kafkadrop (http://localhost:9002)
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/391a327c-5041-48e5-acfe-1466595c5562" alt="Kafka">
+</div>
+
+- Spark (http://localhost:8088)
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/722b10b9-fad9-4de5-8627-e2a46a65d2ac" alt="Spark">
+</div>
+
+- Airflow (http://localhost:8080)
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/e8f11469-1ba4-48aa-9e57-e4b529f8f057" alt="Airflow">
+</div>
