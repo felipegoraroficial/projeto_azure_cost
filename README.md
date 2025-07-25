@@ -64,9 +64,51 @@ Foi criado variáveis de ambientes para armazemento de Keys e Senhas aos recurso
     - **Benefício**: Arquitetura robusta on primese com custo zero.
 
 
+## Incluíndo Requisitos
+
+- MS Graph
+
+Para conseguir acessar a API do MS Graph e obter dados referente aos custos cloud de sua assiantura na Azure, siga esse passo a passo:
+
+1- Crie um registro de aplciativo e armazene em sua variável de ambiente as seguintes informações:
+
+- CLIENT_ID
+- CLIENT_SECRET
+- TENANT_ID
+- SUBSCRIPTION_ID
+
+2 - Conceder permissão ao Regristro de aplicativo ao MS Graph:
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/a4ec1570-e97c-49fe-8018-1aa50ac917e9" alt="registro aplciativo">
+  <p><b>Em seu registro de aplicativo , vá em Permissões de APIs"</b></p>
+</div>
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/2eb1be96-ab92-4414-99e3-f9696a2db116" alt="clicar em adicionar permissão">
+  <p><b>Clique em Adiconar uma permissão"</b></p>
+</div>
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/08be0755-64bd-4f00-adf3-916460b9fb04" alt="permissão api">
+  <p><b>Selecione MS Graph e busque por APIConnectors"</b></p>
+</div>
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/834d3673-a440-4d7e-9408-d66e662c4223" alt="api não concedida">
+  <p><b>Após incluir a permissão, note que a permissão ainda não está concedida"</b></p>
+</div>
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/2d74aed6-685a-40e2-ae9d-906041dabc6d" alt="api concedida">
+  <p><b>Após conceder a permissão ao aplicativo, agora estaremos apto a conectar ao MS Graph"</b></p>
+</div>
+
 ## Iniciando Projeto:
 
-Requisito: Ter insatalo em sua maquina o Docker Desktop
+Requisito: 
+- Ter um Registro de Aplicativo em sua assinatura Azure com permissão para conectar a API MS Graph
+- Ter insatalo em sua maquina o Docker Desktop
 
 1- Realizar o clone do repositório em sua maquina local:
 
@@ -112,16 +154,16 @@ Para subir os recursos do container em segundo plano
 Necessário para que o airflow só start um fluxo se houver files na camada do Kafka.
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/0fa56458-7cc1-497e-b56a-ba981a127264" alt="Secret criada">
+  <img src="https://github.com/user-attachments/assets/7a7f4515-dedc-4efc-b8d0-f2bc0e6916bc" alt="Secret criada">
   <p><b>Preencha as informações em seu respsctivo campo</b></p>
 </div>
 
 ```
 {
-  "host": "http://<'seu host'>>",
-  "enpoint_url": "http://<'seu endpoint'>>",
-  "aws_access_key_id": "<'sua key'>",
-  "aws_secret_access_key": "<'seu secret'>",
+  "host": "http://minio:9000",
+  "endpoint_url": "http://minio:9000",
+  "aws_access_key_id": "QN71RDa4HFrTQJYGnWe2",
+  "aws_secret_access_key": "H5MOUH77RV11EIQcJEVgPUpXOSooc7AQ4WckKCJO",
   "verify": false
 }
 ```
