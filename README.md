@@ -38,11 +38,9 @@ A arquitetura do projeto foi construida utilizando Docker onde utilizamos contai
 Para ambiente de desenvolvimento foi utilizado a imagem Docker Jupyter com Pyspark
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/bf65b926-1bef-4d2e-95cf-5f1783811b06" alt="Ambientes">
+  <img src="https://github.com/user-attachments/assets/bf65b926-1bef-4d2e-95cf-5f1783811b06" alt="Ambientes" width="150"/>
 </div>
 
-<p align="left">
-</p>
 
 ## Meta:
 
