@@ -30,7 +30,7 @@ A arquitetura do projeto foi construida utilizando Docker onde utilizamos contai
 Foi criado variáveis de ambientes para armazemento de Keys e Senhas aos recursos.
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/ed76af20-f6a2-4727-81d3-8be1c91a0a1e" alt="Desenho Técnico">
+  <img src="https://github.com/user-attachments/assets/5835c3ac-fc38-4809-bcd7-6af2a91497cd" alt="Desenho Técnico">
   <p><b>Desenho Técnico</b></p>
 </div>
 
