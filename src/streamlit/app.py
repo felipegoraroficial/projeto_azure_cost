@@ -61,8 +61,7 @@ pergunta = st.text_input("Digite sua pergunta:")
 
 if pergunta:
     answer = agent.invoke(pergunta)
-    print("Resposta:")
-    print(answer)
+    st.markdown(f"**Resposta:** {answer}")
 
 # Convertendo a coluna usagedate para o formato de data e extraindo o mês
 df["usagedate"] = pd.to_datetime(df["usagedate"])
