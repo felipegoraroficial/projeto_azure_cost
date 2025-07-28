@@ -277,7 +277,7 @@ Agora basta seguir esses passos:
 - Streamlit (http://localhost:8501)
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/c92a8332-387d-4b1b-bae4-062ef3672073" alt="Streamlit">
+  <img src="https://github.com/user-attachments/assets/237c423f-a23b-49a9-b745-f6e5379896a5" alt="Streamlit">
 </div>
 
 - Grafana (http://localhost:3000)
