@@ -13,7 +13,7 @@ def calcular_dados_futuro():
     DELTA_LAKE_PACKAGE = "io.delta:delta-core_2.12:3.3.2"
 
     spark = SparkSession.builder \
-        .appName("Silver") \
+        .appName("Gold") \
         .master("spark://spark-master:7077") \
         .config("spark.executor.cores", "1") \
         .config("spark.executor.memory", "8g") \
