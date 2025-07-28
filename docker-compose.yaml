@@ -39,9 +39,7 @@ services:
     restart: always
 
   kafka1:
-    build:
-      context: .
-      dockerfile: Dockerfile.kafka
+    image: confluentinc/cp-kafka:7.5.1
     hostname: kafka1
     ports:
       - "9091:9091"
@@ -52,7 +50,6 @@ services:
       - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
       - KAFKA_BROKER_ID=1
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
-      - KAFKA_OPTS=-javaagent:/jmx_exporter/jmx_prometheus_javaagent-0.19.0.jar=7075:/jmx_exporter/kafka-2_0_0.yml
     volumes:
       - kafka1_data:/var/lib/kafka/data
     depends_on:
@@ -61,17 +58,14 @@ services:
     networks:
       - datalake_internal
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:7075/metrics || exit 1"]
+      test: ["CMD-SHELL", "nc -z localhost 19091 || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 180s
-    restart: always
+      start_period: 60s
 
   kafka-init-topics:
-    build:
-      context: .
-      dockerfile: Dockerfile.kafka    
+    image: confluentinc/cp-kafka:7.5.1
     hostname: kafka-init-topics
     user: root                       
     command: > 
@@ -226,23 +220,6 @@ services:
     networks:
       - datalake_internal
 
-  statsd-exporter:
-    image: prom/statsd-exporter:v0.26.0
-    container_name: statsd-exporter
-    ports:
-      - "8125:8125/udp"
-      - "9102:9102"
-    networks:
-      - datalake_internal
-    command:
-      - "--statsd.listen-udp=:8125"
-      - "--web.listen-address=:9102"
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9102/metrics"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
   airflow-webserver:
     build:
       context: .
@@ -252,8 +229,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      statsd-exporter:
-        condition: service_started
     environment:
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-postgres/airflow
@@ -267,10 +242,6 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - AIRFLOW__CORE__FERNET_KEY=${FERNET_KEY}
-      - AIRFLOW__METRICS__STATSD_ON=True
-      - AIRFLOW__METRICS__STATSD_HOST=statsd-exporter
-      - AIRFLOW__METRICS__STATSD_PORT=8125
-      - AIRFLOW__METRICS__STATSD_PREFIX=airflow
       - PYTHONPATH=/opt/airflow:/opt/airflow/src
     env_file:
       - .env
@@ -300,8 +271,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      statsd-exporter:
-        condition: service_started
     environment:
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-postgres/airflow
@@ -310,10 +279,6 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - AIRFLOW__CORE__FERNET_KEY=${FERNET_KEY}
-      - AIRFLOW__METRICS__STATSD_ON=True
-      - AIRFLOW__METRICS__STATSD_HOST=statsd-exporter
-      - AIRFLOW__METRICS__STATSD_PORT=8125
-      - AIRFLOW__METRICS__STATSD_PREFIX=airflow
       - PYTHONPATH=/opt/airflow:/opt/airflow/src
     volumes:
       - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
@@ -334,8 +299,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      statsd-exporter:
-        condition: service_started
     environment:
       - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-postgres/airflow
@@ -343,10 +306,6 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - AIRFLOW__CORE__FERNET_KEY=${FERNET_KEY}
       - SPARK_EXTRA_PACKAGES=org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.11.1026,io.delta:delta-core_2.12:2.4.0
-      - AIRFLOW__METRICS__STATSD_ON=True
-      - AIRFLOW__METRICS__STATSD_HOST=statsd-exporter
-      - AIRFLOW__METRICS__STATSD_PORT=8125
-      - AIRFLOW__METRICS__STATSD_PREFIX=airflow
       - PYTHONPATH=/opt/airflow:/opt/airflow/src
     env_file:
       - .env
@@ -398,6 +357,18 @@ services:
       - prometheus
     networks:
       - datalake_internal
+
+  docker-exporter:
+    image: ghcr.io/davidborzek/docker-exporter:latest
+    restart: always
+    ports:
+      - "9102:8080"  
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - datalake_internal
+
+
 
 
 networks:
