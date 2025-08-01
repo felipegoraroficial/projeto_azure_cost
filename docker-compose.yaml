@@ -93,8 +93,7 @@ services:
     networks:
       - datalake_internal
     volumes:
-      - /tmp:/tmp       
-    restart: always             
+      - /tmp:/tmp                
 
   kafdrop:
     image: obsidiandynamics/kafdrop:3.31.0
@@ -367,9 +366,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - datalake_internal
-
-
-
 
 networks:
   datalake_internal:

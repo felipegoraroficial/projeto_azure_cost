@@ -14,7 +14,7 @@ ai_key = os.getenv('OPENAI_API_KEY')
 
 st.markdown("<h1 style='text-align: center;'>Azure Cost</h1>", unsafe_allow_html=True)
 
-def load_data():
+def load_data(table):
 
     # --- Configurações de conexão com o PostgreSQL ---
     DB_HOST = "airflow-postgres"
@@ -22,7 +22,7 @@ def load_data():
     DB_USER = os.getenv('POSTGRES_USER')
     DB_PASSWORD = os.getenv('POSTGRES_PASSWORD')
     DB_NAME = "azurecost"
-    TABLE_NAME = "azure_cost_data"
+    TABLE_NAME = table
 
     conn_pg = None
     try:
@@ -45,7 +45,8 @@ def load_data():
 
     except Exception as e:
         return st.error(f"Erro ao conectar ao banco de dados com os dados: {e}")
-df = load_data()
+dfresources = load_data('resources')
+dfcost = load_data('costresources')
 
 llm = ChatOpenAI(temperature=0.7, model="gpt-4o-mini", openai_api_key=ai_key)
 agent = create_pandas_dataframe_agent(llm, df, verbose=True, allow_dangerous_code=True)
@@ -61,7 +62,7 @@ pergunta = st.text_input("Digite sua pergunta:")
 
 if pergunta:
     answer = agent.invoke(pergunta)
-    st.markdown(f"**Resposta:** {answer}")
+    st.markdown(f"**Resposta:** `{answer['output']}`")
 
 # Convertendo a coluna usagedate para o formato de data e extraindo o mês
 df["usagedate"] = pd.to_datetime(df["usagedate"])

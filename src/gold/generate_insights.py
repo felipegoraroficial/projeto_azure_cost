@@ -16,7 +16,7 @@ def calcular_dados_futuro():
         .appName("Gold") \
         .master("spark://spark-master:7077") \
         .config("spark.executor.cores", "1") \
-        .config("spark.executor.memory", "8g") \
+        .config("spark.executor.memory", "2g") \
         .config("spark.cores.max", "2") \
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
         .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
