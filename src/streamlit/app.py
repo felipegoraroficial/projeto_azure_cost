@@ -12,7 +12,7 @@ load_dotenv(dotenv_path=env_path)
 
 ai_key = os.getenv('OPENAI_API_KEY')
 
-st.markdown("<h1 style='text-align: center;'>Azure Cost</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>FinOps Dashboard</h1>", unsafe_allow_html=True)
 
 def load_data(table):
 
@@ -48,12 +48,13 @@ def load_data(table):
 dfresources = load_data('resources')
 dfcost = load_data('costresources')
 
+df = pd.merge(dfresources, dfcost, on='id', how='left')
+
 llm = ChatOpenAI(temperature=0.7, model="gpt-4o-mini", openai_api_key=ai_key)
 agent = create_pandas_dataframe_agent(llm, df, verbose=True, allow_dangerous_code=True)
 
 row_count = len(df)
 st.markdown("<h2 style='text-align: center; color: green;'>Conectado ao banco de dados com sucesso.</h2>", unsafe_allow_html=True)
-st.markdown(f"<h2 style='text-align: center; color: green;'>Número de linhas na tabela: {row_count}</h2>", unsafe_allow_html=True)
 
 st.title("Pergunte para a IA")
 
@@ -64,30 +65,29 @@ if pergunta:
     answer = agent.invoke(pergunta)
     st.markdown(f"**Resposta:** `{answer['output']}`")
 
-# Convertendo a coluna usagedate para o formato de data e extraindo o mês
-df["usagedate"] = pd.to_datetime(df["usagedate"])
-df["month"] = df["usagedate"].dt.strftime("%Y-%m")  # Formato YYYY-MM
-
-# Agrupando e somando os valores
-df_grouped = df.groupby("month")["pretaxcost"].sum().reset_index()
+cost_by_date = load_data('vw_cost_by_date')
 
 # Criando o gráfico de barras
-barra = px.bar(df_grouped, x="month", y="pretaxcost", title="Custo Cloud por Mês")
+barra = px.bar(cost_by_date, x="usagedate", y="pretaxcost_sum", title="Custo Cloud por Mês")
 
 # Exibindo no Streamlit
 st.plotly_chart(barra)
 
+resourcegroup = load_data('vw_resourcegroup_totais')
+
 # Criando o gráfico de pizza
-fig_pizza = px.pie(df, values="pretaxcost", names="resourcegroup", title="Distribuição de Custo por Resource Group")
+fig_pizza = px.pie(resourcegroup, values="total_pretaxcost", names="resourcegroup", title="Distribuição de Custo por Resource Group")
 
 # Exibindo no Streamlit
 st.plotly_chart(fig_pizza)
 
+resourcename = load_data('vw_resourcename_totais')
+
 # Ordenando os dados do maior para o menor
-barra_lateral = df.sort_values(by="pretaxcost", ascending=False)
+barra_lateral = resourcename.sort_values(by="total_pretaxcost", ascending=False)
 
 # Criando o gráfico de barras horizontais
-fig_barra_lateral = px.bar(barra_lateral, x="pretaxcost", y="resourcename", orientation='h', title="Custo dos Recursos")
+fig_barra_lateral = px.bar(barra_lateral, x="total_pretaxcost", y="resourcename", orientation='h', title="Custo dos Recursos")
 
 # Exibindo no Streamlit
 st.plotly_chart(fig_barra_lateral)

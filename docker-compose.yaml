@@ -93,7 +93,8 @@ services:
     networks:
       - datalake_internal
     volumes:
-      - /tmp:/tmp                
+      - /tmp:/tmp     
+    restart: on-failure          
 
   kafdrop:
     image: obsidiandynamics/kafdrop:3.31.0

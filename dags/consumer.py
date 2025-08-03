@@ -12,18 +12,14 @@ default_args = {
 dag = DAG(
     'kafka-consumer',
     default_args=default_args,
-    schedule_interval=None,
+    schedule_interval='*/5 * * * *',
     catchup=False,
 )
-
-# Define uma função Python para o primeiro passo
-def executar_carregar_dados():
-    carregar_dados()
 
 # Task para processar dados do MongoDB
 task1 = PythonOperator(
     task_id='producer',
-    python_callable=executar_carregar_dados,
+    python_callable=carregar_dados,
     dag=dag,
 )
 
