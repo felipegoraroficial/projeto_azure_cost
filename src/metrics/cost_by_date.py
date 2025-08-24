@@ -32,7 +32,7 @@ def creatview_cost_by_date():
     INNER JOIN
         max_usagedate_per_day m
     ON
-        to_date(t.usagedate) = m.day AND t.usagedate = m.max_usagedate
+        t.usagedate::date = m.day AND t.usagedate = m.max_usagedate
     )
     SELECT
     usagedate::date AS usagedate,

@@ -28,19 +28,30 @@ def processar_dados():
     inbound_path = "s3a://azurecost/inbound/*.json"
 
     # Lendo os arquivos JSON como DataFrame
-    df = spark.read.json(inbound_path)
+    df_new = spark.read.json(inbound_path)
 
     # Adiciona a coluna 'data_ref' com a data atual formatada como 'yyyy-MM-dd'
-    df = df.withColumn("data_ref", date_format(current_date(), "yyyy-MM-dd"))
+    df_new = df_new.withColumn("data_ref", date_format(current_date(), "yyyy-MM-dd"))
 
-    df.show(truncate=False)
+    df_new.show()
 
-
-    # Caminho S3A para os arquivos JSON no MinIO
+    # Caminho para a tabela Delta (no seu MinIO)
     bronze_path = "s3a://azurecost/bronze"
 
-    df.write.format("delta") \
-        .mode("overwrite") \
+    # Lê os dados somente da última partição
+    df_old = spark.read.format("delta").load(bronze_path)
+
+    df_old.show(truncate=False)
+
+    df_combined = df_new.unionByName(df_old)
+
+    df_incremental = df_combined.dropDuplicates()
+
+
+    df_incremental.show(truncate=False)
+
+    df_incremental.write.format("delta") \
+        .mode("append") \
         .partitionBy("data_ref") \
         .save(bronze_path)
     
