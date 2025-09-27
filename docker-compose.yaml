@@ -50,6 +50,8 @@ services:
       - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
       - KAFKA_BROKER_ID=1
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_LOG_SEGMENT_MS=3600000
+      - KAFKA_LOG_ROLL_MS=3600000
     volumes:
       - kafka1_data:/var/lib/kafka/data
     depends_on:
