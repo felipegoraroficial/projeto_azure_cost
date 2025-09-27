@@ -20,14 +20,8 @@ def processar_dados():
     # Obtém o horário atual em UTC
     agora_utc = datetime.now(timezone.utc)
 
-    # Formata a data/hora atual para o padrão ISO sem os segundos (ex: '2025-07-11T18:17')
-    data_atual = agora_utc.strftime('%Y-%m-%dT%H:%M')
-
-    # Calcula o horário de dois minutos atrás
-    dois_minutos_atras = agora_utc - timedelta(minutes=2)
-
-    # Formata a data/hora de dois minutos atrás
-    data_dois_minutos_atras = dois_minutos_atras.strftime('%Y-%m-%dT%H:%M')
+    # Formata a data/hora atual para o padrão ISO (ex: '2025-07-11')
+    data_atual = agora_utc.strftime('%Y-%m-%d')
 
     # Monta a URL para obter o token de autenticação do Azure AD
     auth_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/token"
@@ -47,8 +41,8 @@ def processar_dados():
         "type": "Usage",
         "timeframe": "Custom",
         "timePeriod": {
-            "from": f"{data_dois_minutos_atras}:00Z",  # início do intervalo
-            "to": f"{data_atual}:59Z"                   # fim do intervalo
+            "from": f"{data_atual}T00:00:00Z",  # início do intervalo
+            "to": f"{data_atual}T23:59:59Z"     # fim do intervalo
         },
         "dataset": {
             "granularity": "Daily",
